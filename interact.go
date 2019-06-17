@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -34,6 +35,7 @@ type V2RayPoint struct {
 	SupportSet   V2RayVPNServiceSupportsSet
 	statsManager v2stats.Manager
 
+	dialer   *VPN.VPNProtectedDialer
 	status   *CoreI.Status
 	escorter *Escort.Escorting
 	v2rayOP  *sync.Mutex
@@ -62,6 +64,8 @@ func (v *V2RayPoint) RunLoop() (err error) {
 	defer v.v2rayOP.Unlock()
 	//Construct Context
 	v.status.PackageName = v.PackageName
+	v.dialer.SupportSet = v.SupportSet
+	v2internet.UseAlternativeSystemDialer(v.dialer)
 
 	if !v.status.IsRunning {
 		err = v.pointloop()
@@ -74,6 +78,10 @@ func (v *V2RayPoint) RunLoop() (err error) {
 func (v *V2RayPoint) StopLoop() (err error) {
 	v.v2rayOP.Lock()
 	defer v.v2rayOP.Unlock()
+
+	// restore default dialer
+	v2internet.UseAlternativeSystemDialer(nil)
+
 	if v.status.IsRunning {
 		v.shutdownInit()
 		v.SupportSet.Shutdown()
@@ -82,6 +90,7 @@ func (v *V2RayPoint) StopLoop() (err error) {
 	if err != nil {
 		log.Println(err)
 	}
+
 	return
 }
 
@@ -102,13 +111,6 @@ func (v V2RayPoint) QueryStats(tag string, direct string) int64 {
 	return counter.Set(0)
 }
 
-func (v V2RayPoint) protectFd(network, address string, fd uintptr) error {
-	if ret := v.SupportSet.Protect(int(fd)); ret != 0 {
-		return fmt.Errorf("protectFd: fail to protect")
-	}
-	return nil
-}
-
 func (v *V2RayPoint) shutdownInit() {
 	v.status.IsRunning = false
 	v.status.Vpoint.Close()
@@ -122,12 +124,6 @@ func (v *V2RayPoint) pointloop() error {
 		log.Println(err)
 		return err
 	}
-
-	dialer := &VPN.VPNProtectedDialer{
-		DomainName: v.DomainName,
-		SupportSet: v.SupportSet,
-	}
-	go dialer.PrepareDomain()
 
 	log.Printf("EnableLocalDNS: %v\nForwardIpv6: %v\nDomainName: %s",
 		v.EnableLocalDNS,
@@ -160,7 +156,6 @@ func (v *V2RayPoint) pointloop() error {
 
 	v.SupportSet.Prepare()
 	v.SupportSet.Setup(v.status.GetVPNSetupArg(v.EnableLocalDNS, v.ForwardIpv6))
-	v2internet.UseAlternativeSystemDialer(dialer)
 	v.SupportSet.OnEmitStatus(0, "Running")
 	return nil
 }
@@ -185,10 +180,6 @@ func initV2Env() {
 		}
 		return os.Open(path)
 	}
-
-	// opt-in TLS 1.3 for Go1.12
-	// TODO: remove this line when Go1.13 is released.
-	os.Setenv("GODEBUG", "tls13=1")
 }
 
 //Delegate Funcation
@@ -201,11 +192,13 @@ func TestConfig(ConfigureFileContent string) error {
 /*NewV2RayPoint new V2RayPoint*/
 func NewV2RayPoint() *V2RayPoint {
 	initV2Env()
-	_status := &CoreI.Status{}
+	dialer := &VPN.VPNProtectedDialer{}
+	status := &CoreI.Status{}
 	return &V2RayPoint{
 		v2rayOP:  new(sync.Mutex),
-		status:   _status,
-		escorter: &Escort.Escorting{Status: _status},
+		status:   status,
+		dialer:   dialer,
+		escorter: &Escort.Escorting{Status: status},
 	}
 }
 
@@ -236,5 +229,5 @@ func CheckVersion() int {
 This func will return libv2ray binding version and V2Ray version used.
 */
 func CheckVersionX() string {
-	return fmt.Sprintf("Libv2rayLite V%d, Core V%s", CheckVersion(), v2core.Version())
+	return fmt.Sprintf("Libv2rayLite V%d, Core V%s, %s", CheckVersion(), v2core.Version(), runtime.Version())
 }
