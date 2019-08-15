@@ -225,12 +225,15 @@ func NewV2RayPoint(s V2RayVPNServiceSupportsSet) *V2RayPoint {
 }
 
 func (v V2RayPoint) runTun2socks() error {
+	/*
 	shipb := shippedBinarys.FirstRun{Status: v.status}
 	if err := shipb.CheckAndExport(); err != nil {
 		log.Println(err)
 		return err
 	}
-
+	*/
+	log.Println("jump CheckAndExport")
+	
 	v.escorter.EscortingUp()
 	go v.escorter.EscortRun(
 		v.status.GetApp("tun2socks"),
