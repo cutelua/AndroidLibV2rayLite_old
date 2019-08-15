@@ -12,7 +12,6 @@ shippedBinary:
 	cd shippedBinarys; $(MAKE) shippedBinary
 
 fetchDep:
-	go get -u github.com/jteeuwen/go-bindata/...
 	-go get  github.com/2dust/AndroidLibV2rayLite
 	go get github.com/2dust/AndroidLibV2rayLite
 
@@ -31,5 +30,5 @@ downloadGoMobile:
 BuildMobile:
 	@echo Stub
 
-all: asset pb fetchDep
+all: asset pb shippedBinary fetchDep
 	@echo DONE
