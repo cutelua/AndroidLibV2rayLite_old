@@ -30,5 +30,5 @@ downloadGoMobile:
 BuildMobile:
 	@echo Stub
 
-all: asset pb shippedBinary fetchDep
+all: asset pb fetchDep
 	@echo DONE
