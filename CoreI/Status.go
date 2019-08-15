@@ -20,7 +20,7 @@ func (v *Status) GetDataDir() string {
 }
 
 func (v *Status) GetApp(name string) string {
-	return v.PackageName + name
+	return v.PackageName + "arm64/" + name
 }
 
 func (v *Status) GetTun2socksArgs(localDNS bool, enableIPv6 bool) (ret []string) {
