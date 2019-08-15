@@ -70,6 +70,7 @@ func (v *V2RayPoint) RunLoop() (err error) {
 
 	if !v.status.IsRunning {
 		v.closeChan = make(chan struct{})
+		v.dialer.PrepareResolveChan()
 		go v.dialer.PrepareDomain(v.DomainName, v.closeChan)
 		go func() {
 			select {

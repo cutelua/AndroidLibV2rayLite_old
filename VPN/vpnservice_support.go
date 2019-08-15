@@ -71,8 +71,6 @@ func (r *resolved) currentIP() net.IP {
 // NewPreotectedDialer ...
 func NewPreotectedDialer(p protectSet) *ProtectedDialer {
 	d := &ProtectedDialer{
-		resolveChan: make(chan struct{}),
-
 		// prefer native lookup on Android
 		resolver:   &net.Resolver{PreferGo: false},
 		protectSet: p,
@@ -93,6 +91,10 @@ type ProtectedDialer struct {
 
 func (d *ProtectedDialer) IsVServerReady() bool {
 	return (d.vServer != nil)
+}
+
+func (d *ProtectedDialer) PrepareResolveChan() {
+	d.resolveChan = make(chan struct{})
 }
 
 func (d *ProtectedDialer) ResolveChan() <-chan struct{} {
