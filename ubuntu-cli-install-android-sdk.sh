@@ -5,15 +5,13 @@
 
 # Install Oracle JDK 8
 apt-get update
-apt-get install default-jre -ys
-apt-get install default-jdk -y
-apt-get install openjdk-8-jdk
+apt-get install -y openjdk-8-jdk
 apt-get install -y unzip make expect # NDK stuff
 
 # Get SDK tools (link from https://developer.android.com/studio/index.html#downloads)
-wget -O sdk-tools-linux-4333796.zip https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip
+wget -q https://dl.google.com/android/repository/sdk-tools-linux-3859397.zip
 mkdir android-sdk-linux
-unzip -o sdk-tools-linux-4333796.zip -d android-sdk-linux
+unzip sdk*.zip -d android-sdk-linux
 
 # Get NDK (https://developer.android.com/ndk/downloads/index.html)
 # wget -q https://dl.google.com/android/repository/android-ndk-r15c-linux-x86_64.zip
