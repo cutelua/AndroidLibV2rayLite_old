@@ -9,9 +9,7 @@ import (
 	"sync"
 
 	"github.com/2dust/AndroidLibV2rayLite/CoreI"
-	"github.com/2dust/AndroidLibV2rayLite/Process/Escort"
 	"github.com/2dust/AndroidLibV2rayLite/VPN"
-	"github.com/2dust/AndroidLibV2rayLite/shippedBinarys"
 	mobasset "golang.org/x/mobile/asset"
 
 	v2core "v2ray.com/core"
@@ -39,15 +37,11 @@ type V2RayPoint struct {
 
 	dialer    *VPN.ProtectedDialer
 	status    *CoreI.Status
-	escorter  *Escort.Escorting
 	v2rayOP   *sync.Mutex
 	closeChan chan struct{}
 
-	PackageName          string
 	DomainName           string
-	ConfigureFileContent string
-	EnableLocalDNS       bool
-	ForwardIpv6          bool
+	ConfigureFileContent string 
 }
 
 /*V2RayVPNServiceSupportsSet To support Android VPN mode*/
@@ -56,8 +50,7 @@ type V2RayVPNServiceSupportsSet interface {
 	Prepare() int
 	Shutdown() int
 	Protect(int) int
-	OnEmitStatus(int, string) int
-	SendFd() int
+	OnEmitStatus(int, string) int 
 }
 
 /*RunLoop Run V2Ray main loop
@@ -66,7 +59,6 @@ func (v *V2RayPoint) RunLoop() (err error) {
 	v.v2rayOP.Lock()
 	defer v.v2rayOP.Unlock()
 	//Construct Context
-	v.status.PackageName = v.PackageName
 
 	if !v.status.IsRunning {
 		v.closeChan = make(chan struct{})
@@ -128,20 +120,10 @@ func (v *V2RayPoint) shutdownInit() {
 	v.status.Vpoint.Close()
 	v.status.Vpoint = nil
 	v.statsManager = nil
-	v.escorter.EscortingDown()
 }
 
 func (v *V2RayPoint) pointloop() error {
-	if err := v.runTun2socks(); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	log.Printf("EnableLocalDNS: %v\nForwardIpv6: %v\nDomainName: %s",
-		v.EnableLocalDNS,
-		v.ForwardIpv6,
-		v.DomainName)
-
+ 	
 	log.Println("loading v2ray config")
 	config, err := v2serial.LoadJSONConfig(strings.NewReader(v.ConfigureFileContent))
 	if err != nil {
@@ -167,7 +149,7 @@ func (v *V2RayPoint) pointloop() error {
 	}
 
 	v.SupportSet.Prepare()
-	v.SupportSet.Setup(v.status.GetVPNSetupArg(v.EnableLocalDNS, v.ForwardIpv6))
+	v.SupportSet.Setup("")
 	v.SupportSet.OnEmitStatus(0, "Running")
 	return nil
 }
@@ -220,26 +202,9 @@ func NewV2RayPoint(s V2RayVPNServiceSupportsSet) *V2RayPoint {
 		v2rayOP:    new(sync.Mutex),
 		status:     status,
 		dialer:     dialer,
-		escorter:   &Escort.Escorting{Status: status},
 	}
 }
-
-func (v V2RayPoint) runTun2socks() error {
-	shipb := shippedBinarys.FirstRun{Status: v.status}
-	if err := shipb.CheckAndExport(); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	v.escorter.EscortingUp()
-	go v.escorter.EscortRun(
-		v.status.GetApp("tun2socks"),
-		v.status.GetTun2socksArgs(v.EnableLocalDNS, v.ForwardIpv6), "",
-		v.SupportSet.SendFd)
-
-	return nil
-}
-
+ 
 /*CheckVersion int
 This func will return libv2ray binding version.
 */
