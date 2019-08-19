@@ -38,11 +38,12 @@ type V2RayPoint struct {
 	v2rayOP   *sync.Mutex
 	closeChan chan struct{}
 
-	Vpoint v2core.Server
-	IsRunning   bool
+	Vpoint    v2core.Server
+	IsRunning bool
 
 	DomainName           string
-	ConfigureFileContent string 
+	ConfigureFileContent string
+	AsyncResolve         bool
 }
 
 /*V2RayVPNServiceSupportsSet To support Android VPN mode*/
@@ -51,7 +52,7 @@ type V2RayVPNServiceSupportsSet interface {
 	Prepare() int
 	Shutdown() int
 	Protect(int) int
-	OnEmitStatus(int, string) int 
+	OnEmitStatus(int, string) int
 }
 
 /*RunLoop Run V2Ray main loop
@@ -64,7 +65,6 @@ func (v *V2RayPoint) RunLoop() (err error) {
 	if !v.IsRunning {
 		v.closeChan = make(chan struct{})
 		v.dialer.PrepareResolveChan()
-		go v.dialer.PrepareDomain(v.DomainName, v.closeChan)
 		go func() {
 			select {
 			// wait until resolved
@@ -80,6 +80,12 @@ func (v *V2RayPoint) RunLoop() (err error) {
 			case <-v.closeChan:
 			}
 		}()
+
+		if v.AsyncResolve {
+			go v.dialer.PrepareDomain(v.DomainName, v.closeChan)
+		} else {
+			v.dialer.PrepareDomain(v.DomainName, v.closeChan)
+		}
 
 		err = v.pointloop()
 	}
@@ -119,7 +125,7 @@ func (v *V2RayPoint) shutdownInit() {
 }
 
 func (v *V2RayPoint) pointloop() error {
- 	
+
 	log.Println("loading v2ray config")
 	config, err := v2serial.LoadJSONConfig(strings.NewReader(v.ConfigureFileContent))
 	if err != nil {
@@ -180,7 +186,7 @@ func TestConfig(ConfigureFileContent string) error {
 }
 
 /*NewV2RayPoint new V2RayPoint*/
-func NewV2RayPoint(s V2RayVPNServiceSupportsSet) *V2RayPoint {
+func NewV2RayPoint(s V2RayVPNServiceSupportsSet, adns bool) *V2RayPoint {
 	initV2Env()
 
 	// inject our own log writer
@@ -193,9 +199,10 @@ func NewV2RayPoint(s V2RayVPNServiceSupportsSet) *V2RayPoint {
 	dialer := VPN.NewPreotectedDialer(s)
 	v2internet.UseAlternativeSystemDialer(dialer)
 	return &V2RayPoint{
-		SupportSet: s,
-		v2rayOP:    new(sync.Mutex),
-		dialer:     dialer,
+		SupportSet:   s,
+		v2rayOP:      new(sync.Mutex),
+		dialer:       dialer,
+		AsyncResolve: adns,
 	}
 }
 
