@@ -100,11 +100,6 @@ func (v *V2RayPoint) StopLoop() (err error) {
 }
 
 //Delegate Funcation
-func (v *V2RayPoint) GetIsRunning() bool {
-	return v.IsRunning
-}
-
-//Delegate Funcation
 func (v V2RayPoint) QueryStats(tag string, direct string) int64 {
 	if v.statsManager == nil {
 		return 0
