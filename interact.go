@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/2dust/AndroidLibV2rayLite/CoreI"
 	"github.com/2dust/AndroidLibV2rayLite/VPN"
 	mobasset "golang.org/x/mobile/asset"
 
@@ -36,9 +35,11 @@ type V2RayPoint struct {
 	statsManager v2stats.Manager
 
 	dialer    *VPN.ProtectedDialer
-	status    *CoreI.Status
 	v2rayOP   *sync.Mutex
 	closeChan chan struct{}
+
+	Vpoint v2core.Server
+	IsRunning   bool
 
 	DomainName           string
 	ConfigureFileContent string 
@@ -60,7 +61,7 @@ func (v *V2RayPoint) RunLoop() (err error) {
 	defer v.v2rayOP.Unlock()
 	//Construct Context
 
-	if !v.status.IsRunning {
+	if !v.IsRunning {
 		v.closeChan = make(chan struct{})
 		v.dialer.PrepareResolveChan()
 		go v.dialer.PrepareDomain(v.DomainName, v.closeChan)
@@ -90,7 +91,7 @@ func (v *V2RayPoint) RunLoop() (err error) {
 func (v *V2RayPoint) StopLoop() (err error) {
 	v.v2rayOP.Lock()
 	defer v.v2rayOP.Unlock()
-	if v.status.IsRunning {
+	if v.IsRunning {
 		close(v.closeChan)
 		v.shutdownInit()
 		v.SupportSet.OnEmitStatus(0, "Closed")
@@ -100,7 +101,7 @@ func (v *V2RayPoint) StopLoop() (err error) {
 
 //Delegate Funcation
 func (v *V2RayPoint) GetIsRunning() bool {
-	return v.status.IsRunning
+	return v.IsRunning
 }
 
 //Delegate Funcation
@@ -116,9 +117,9 @@ func (v V2RayPoint) QueryStats(tag string, direct string) int64 {
 }
 
 func (v *V2RayPoint) shutdownInit() {
-	v.status.IsRunning = false
-	v.status.Vpoint.Close()
-	v.status.Vpoint = nil
+	v.IsRunning = false
+	v.Vpoint.Close()
+	v.Vpoint = nil
 	v.statsManager = nil
 }
 
@@ -137,13 +138,13 @@ func (v *V2RayPoint) pointloop() error {
 		log.Println(err)
 		return err
 	}
-	v.status.Vpoint = inst
+	v.Vpoint = inst
 	v.statsManager = inst.GetFeature(v2stats.ManagerType()).(v2stats.Manager)
 
 	log.Println("start v2ray core")
-	v.status.IsRunning = true
-	if err := v.status.Vpoint.Start(); err != nil {
-		v.status.IsRunning = false
+	v.IsRunning = true
+	if err := v.Vpoint.Start(); err != nil {
+		v.IsRunning = false
 		log.Println(err)
 		return err
 	}
@@ -196,20 +197,15 @@ func NewV2RayPoint(s V2RayVPNServiceSupportsSet) *V2RayPoint {
 
 	dialer := VPN.NewPreotectedDialer(s)
 	v2internet.UseAlternativeSystemDialer(dialer)
-	status := &CoreI.Status{}
 	return &V2RayPoint{
 		SupportSet: s,
 		v2rayOP:    new(sync.Mutex),
-		status:     status,
 		dialer:     dialer,
 	}
 }
- 
-/*CheckVersion int
-This func will return libv2ray binding version.
-*/
+
 func CheckVersion() int {
-	return CoreI.CheckVersion()
+	return 21
 }
 
 /*CheckVersionX string
