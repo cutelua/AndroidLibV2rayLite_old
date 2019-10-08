@@ -14,6 +14,7 @@ shippedBinary:
 fetchDep:
 	go get -v golang.org/x/mobile/cmd/...
 	go get -v -insecure v2ray.com/core
+	go get -v go.starlark.net/starlark
 	-go get  github.com/2dust/AndroidLibV2rayLite
 	go get github.com/2dust/AndroidLibV2rayLite
 
