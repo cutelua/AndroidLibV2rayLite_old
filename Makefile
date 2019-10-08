@@ -12,6 +12,8 @@ shippedBinary:
 	cd shippedBinarys; $(MAKE) shippedBinary
 
 fetchDep:
+	go get -v golang.org/x/mobile/cmd/...
+	go get -v -insecure v2ray.com/core
 	-go get  github.com/2dust/AndroidLibV2rayLite
 	go get github.com/2dust/AndroidLibV2rayLite
 
@@ -20,15 +22,13 @@ export ANDROID_HOME
 PATH:=$(PATH):$(GOPATH)/bin
 export PATH
 downloadGoMobile:
-	go get golang.org/x/mobile/cmd/...
-	sudo apt-get install -qq libstdc++6:i386 lib32z1 expect
-	cd ~ ;curl -L https://raw.githubusercontent.com/2dust/AndroidLibV2rayLite/master/ubuntu-cli-install-android-sdk.sh | sudo bash - > /dev/null
+	cd ~ ;curl -L https://raw.githubusercontent.com/2dust/AndroidLibV2rayLite/master/ubuntu-cli-install-android-sdk.sh | sudo bash -
 	ls ~
 	ls ~/android-sdk-linux/
-	gomobile init ;gomobile bind -v  -tags json github.com/2dust/AndroidLibV2rayLite
 
 BuildMobile:
-	@echo Stub
+	gomobile init
+	env GO111MODULE=off gomobile bind -v -ldflags='-s -w' github.com/2dust/AndroidLibV2rayLite
 
 all: asset pb fetchDep
 	@echo DONE
